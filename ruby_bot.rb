@@ -36,37 +36,32 @@ class IRC
     case s.strip
     when /^PING :(.+)$/i
        send "PONG :#{$1}"
-    when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s(.+?)\s:!hi\s#{@nick}$/i
+    when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s(.+?)\s:hi\s#{@nick}$/i
       send "PRIVMSG #{$4} :heya #{$1}!"
     when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s(.+?)\s:!po0f\s(.+?)$/i
       q[:u], q[:h] = $1, $3
-      if daddy_approves(q) == true
-        send "KICK #{$4} #{$5}" 
-      else
-        send "PRIVMSG #{$4} :Nope xD"
-      end
+      send "KICK #{$4} #{$5}" if approved?(q)
+      send "PRIVMSG #{$4}" if !approved?(q)
     when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s.(.+?)\s:!op\s(.+?)$/i
       q[:u], q[:h] = $1, $3 
-      if daddy_approves(q) == true      
-        send "MODE ##{$4} +o #{$5}"
-      else
-        send "PRIVMSG #{$4} :Nope xD"
-    when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s.+\s:!version$/i
+      send "MODE ##{$4} +o #{$5}" if approved?(q)      
+      send "PRIVMSG #{$4} :Nope xD" if !approved?(q)
+    when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s(.+?)\s:!version$/i
       send "NOTICE #{(($4==@nick)?$1:$4)} :\001VERSION ruby_bot v0.0001a by l3thal@smashthestack.org"
-    when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s(.+)\s:!do (.+?)$/i
+    when /^:(.+?)!(.+?)@(.+?)\sPRIVMSG\s(.+")\s:!do (.+?)$/i
       q[:u], q[:h] = $1, $3
-      send "PRIVMSG #{$1} :#{doit($5)}" if daddy_approves(q) == true
+      send "PRIVMSG #{$1} :#{doit($5)}" if approved?(q)
     else
       puts s
     end
   end
 
-  def daddy_approves(q)
+  def approved?(q)
     return true if q[:u] == OWNER && q[:h] == HOST
   end    
 
   def run
-    while true
+    loop do
       ready = select([@irc, $stdin], nil, nil, nil)
       next if !ready
       for s in ready[0]
